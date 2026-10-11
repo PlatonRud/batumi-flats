@@ -347,35 +347,6 @@
     if (tab === 'map') map.invalidateSize();
   }
 
-  // ——— Высота экрана на iOS ———
-
-  // В приложении с экрана «Домой» iOS может считать высоту окна без области строки состояния,
-  // и снизу остаётся пустая полоса. Если не хватает ровно этой области — растягиваем приложение на весь экран.
-  function fitStandaloneHeight() {
-    const root = document.documentElement;
-    root.classList.remove('ios-short-viewport');
-    root.style.removeProperty('--app-height');
-    if (navigator.standalone) {
-      const probe = document.createElement('div');
-      probe.style.cssText =
-        'position:fixed;top:0;left:0;width:0;height:0;visibility:hidden;padding-top:env(safe-area-inset-top)';
-      document.body.append(probe);
-      const insetTop = parseFloat(getComputedStyle(probe).paddingTop) || 0;
-      probe.remove();
-
-      // screen.width/height на iOS не меняются при повороте
-      const portrait = window.matchMedia('(orientation: portrait)').matches;
-      const screenHeight = portrait ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height);
-      const missing = screenHeight - document.querySelector('.app').offsetHeight;
-
-      if (insetTop > 0 && Math.abs(missing - insetTop) <= 2) {
-        root.style.setProperty('--app-height', `${screenHeight}px`);
-        root.classList.add('ios-short-viewport');
-      }
-    }
-    if (map) map.invalidateSize();
-  }
-
   // ——— Запуск ———
 
   $('nav-map').addEventListener('click', () => showTab('map'));
@@ -385,15 +356,11 @@
   $('gallery-close').addEventListener('click', () => history.back());
   $('gallery-track').addEventListener('scroll', updateGalleryCount, { passive: true });
   window.addEventListener('popstate', route);
-  window.addEventListener('resize', fitStandaloneHeight);
-  window.addEventListener('orientationchange', fitStandaloneHeight);
-  window.addEventListener('pageshow', fitStandaloneHeight);
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => navigator.serviceWorker.register('sw.js'));
   }
 
-  fitStandaloneHeight();
   initMap();
   showTab('map');
 
