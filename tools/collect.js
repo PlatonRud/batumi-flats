@@ -263,6 +263,8 @@ async function main() {
   const posts = await readChannel();
   const listings = posts.map(parseListing).filter(Boolean);
   console.log(`Постов: ${posts.length}, объявлений: ${listings.length}`);
+  // Пустой результат — скорее всего, канал не отдал страницу; старые данные не затираем
+  if (listings.length === 0) throw new Error('Не найдено ни одного объявления — данные не обновлены');
 
   if (GEOCODE) await addCoordinates(listings);
 
