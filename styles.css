@@ -75,8 +75,12 @@ ul { margin: 0; padding: 0; list-style: none; }
 @media (display-mode: standalone) {
   .app { height: max(100vh, 100dvh); }
 }
-/* iOS считает высоту окна без области строки состояния — см. fitStandaloneHeight() в app.js */
-.ios-short-viewport .app { height: var(--app-height); }
+/* iOS считает высоту окна без области строки состояния — см. fitStandaloneHeight() в app.js.
+   Блок ставится в обычный поток: закреплённые (fixed) элементы iOS обрезает по своей укороченной высоте. */
+.ios-short-viewport .app {
+  position: relative;
+  height: var(--app-height);
+}
 
 /* Стекло: чипы, таб-бар и круглые кнопки */
 .glass {
