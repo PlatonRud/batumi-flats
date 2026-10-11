@@ -1,0 +1,61 @@
+# Каждые три часа собирает свежие объявления из канала и выкладывает сайт заново.
+# Собранный data/listings.json в репозиторий не записывается (ссылки на фото меняются при каждом запуске,
+# и история росла бы на мегабайты в день) — он попадает только в выложенную версию сайта.
+name: Update listings and deploy
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '23 */3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+# Одновременно выкладывается только одна версия; начатую выкладку не прерываем
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Если сборщик упал, сайт не трогаем: остаётся прошлая выложенная версия
+      - name: Collect listings
+        run: node tools/collect.js --days 7
+
+      # Координаты новых адресов сохраняем, чтобы не искать их заново при каждом запуске
+      - name: Save new coordinates
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/geocache.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Update geocache"
+            git push || echo "push skipped: main has moved, will retry on the next run"
+          fi
+
+      - name: Prepare site
+        run: |
+          mkdir _site
+          cp -r index.html styles.css app.js sw.js manifest.webmanifest data fonts icons vendor _site/
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
